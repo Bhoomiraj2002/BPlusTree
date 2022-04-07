@@ -42,7 +42,20 @@ class node{
         bool isFull(){ if(occupancy<maxocc)return 0;else return 1; }
         void insert(int key){//in sorted order
             if(!isFull()){
-                keys[occupancy++]=key;
+                int temp;bool ins=false;
+                REP(i,occupancy+1){
+                    if(!ins)
+                        if(keys[i]>key){
+                            temp=keys[i];
+                            keys[i]=key;
+                            ins=1;
+                        }
+                    else{
+                        swap(temp,keys[i]);
+                    }
+                }
+                keys[occupancy]=key;
+                occupancy++;
             }
         }
         void printnode(){
@@ -57,8 +70,6 @@ class node{
 signed main(){
     FAST_IO
     cin>>t>>d;
-    cout<<t<<endl;
-    cout<<d<<endl;
     node n1(true);
     int x;
     while(cin>>x)
