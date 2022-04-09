@@ -13,20 +13,24 @@ typedef long long ll;
 
 int t,d;
 
-void insertkey(int* keys, int occupancy, int key){
+int insertkey(int* keys, int occupancy, int key){
+    int insrt=occupancy;
     int temp;bool ins=false;
         REP(i,occupancy+1){
             if(!ins){
                 if(i==occupancy)keys[occupancy]=key;
                 else if(keys[i]>key){
                     temp=keys[i];
-                    keys[i]=key;
+                    keys[i]=key;insrt=i;
                     ins=1;
                 }
             }
             else swap(temp,keys[i]);
         }
+
+        return insrt;
 }
+
 
 
 class node{
@@ -55,28 +59,26 @@ class node{
             parent=nullptr;
         }
         bool isFull(){ if(occupancy<maxocc)return 0;else return 1; }
-        void insert(int key){//in sorted order
-            if(!isFull()){//***only for data node***
-                /*int temp;bool ins=false;
-                REP(i,occupancy+1){
-                    if(!ins){
-                        if(i==occupancy)keys[occupancy]=key;
-                        else if(keys[i]>key){
-                            temp=keys[i];
-                            keys[i]=key;
-                            ins=1;
-                        }
-                    }
-                    else swap(temp,keys[i]);
-                }*/
-                insertkey( keys, occupancy, key);
+        void shiftchilds(int k){
+            node* temp;
+            for(int i=occupancy+1;  i>=k;i--){
+                childs[i+1]=childs[i];
+            }childs[k]=nullptr;
+        }
+        int insert(int key){//in sorted order
+            if(!isFull()){
+                int z=insertkey( keys, occupancy, key);
                 occupancy++;
-            }
+                return z;
+                /*if(!isdata)
+                    shiftchilds(z+1);*/
+            }return -1;
         }
         bool getisdata(){return isdata;}
         int getkey(int k){return keys[k];}
         int* getkeys(){return keys;}
         node* getchild(int k){return childs[k];}
+        node** getchilds(){return childs;}
         void setchild(node* node, int k){childs[k]=node;}
         node* getparent(){return parent;}void setparent(node* p){parent=p;}
         int getocc(){return occupancy;}
@@ -106,6 +108,21 @@ class node{
         }
 };
 
+void insertchild(node** childs, int occupancy, int x, node* n1){
+    node* temp;
+    bool ins=false;
+    REP(i,occupancy+1){
+        if(!ins){
+            if(i==x){
+                temp=childs[i];
+                childs[i]=n1;
+                ins=1;
+            }
+        }
+        else swap(temp,childs[i]);
+    }
+}
+
 
 pair<int,int> count(node* n1){
     int i=0; int d=0;
@@ -125,9 +142,10 @@ pair<int,int> count(node* n1){
 
 void printtree(node* n1){
     if(n1==nullptr)return;
+    //cout<<"{"<<n1->getisdata()<<"} ";
     n1->printnode();
     
-    if(n1->getisdata()==0){
+    if(n1->getisdata()==0){ //if n1 != index node
         cout<<" c( ";
         int occ=n1->getocc();
         REP(i,occ+1){
@@ -138,11 +156,74 @@ void printtree(node* n1){
     }
     
 }
-node* splitindexnode(node* n1, int x){
 
+node* splitindexnode(node* n1, int key, node* n2 ){
+    //split index node...
+       cout<<"splitting ind node...\n";
+    int* temp1=n1->getkeys();//copy all keys
+    int occ=n1->getocc(); 
+    int temp[occ+1];
+    copy(temp1, temp1+occ, temp);
+    int z=insertkey(temp, occ, key); //insert new key 
+
+    node** temp2=n1->getchilds();//copy all childs
+    node* tmpchilds[occ+2];
+    copy(temp2, temp2+occ+1, tmpchilds);
+    
+    cout<<endl;
+    FOR(i,0,occ+1){
+        tmpchilds[i]->printnode();cout<<"!! ";
+    }cout<<endl;
+
+    insertchild(tmpchilds, occ+1 , z+1, n2);//insert new 
+    
+    cout<<endl;
+    FOR(i,0,occ+2){
+        tmpchilds[i]->printnode();cout<<"!! ";
+    }cout<<endl;
+
+    node* newnode=new node(0);
+    node* toreturn=nullptr;
+    if(n1->getparent()==nullptr){
+        node* parent =new node(0);
+        toreturn=parent;
+        parent->setchild(n1,0);
+        n1->setparent(parent);
+    }
+    node* p=n1->getparent();
+    int p_occ=p->getocc();
+    n1->setocc(0);
+    //add childs also in new nodes...
+    
+
+    FOR(i,0, t){
+        n1->insert(temp[i]);
+        n1->setchild(tmpchilds[i], i);
+    }n1->setchild(tmpchilds[t], t);
+    FOR(i,t, occ+1){
+        newnode->insert(temp[i]);
+        newnode->setchild(tmpchilds[i], i);
+    }newnode->setchild(tmpchilds[t], t);
+    //check if parent is full...
+    if(!p->isFull())
+    {
+        //p->printnode();cout<<endl;
+        //newnode->printnode();
+        int y= p->insert(temp[t]);
+        p->shiftchilds(y+1);
+        p->setchild(newnode,y+1);newnode->setparent(p);
+        /*
+        int x= p->insert(temp[t]);
+        p->setchild(newnode,p_occ+1);newnode->setparent(p);*/
+    }else{
+        cout<<"Index Node's parent is Full\n";
+        toreturn=splitindexnode(p, key, newnode);
+    }
+    return toreturn;
 }
 
 node* splitDataNode(node* n1, int key){
+    
     int* temp1=n1->getkeys();
     int occ=n1->getocc(); 
     int temp[occ+1];
@@ -150,19 +231,31 @@ node* splitDataNode(node* n1, int key){
     insertkey(temp, occ, key);
 
     node* newnode=new node(1);
+    node* toreturn=nullptr;
     if(n1->getparent()==nullptr){
         node* parent =new node(0);
+        toreturn=parent;
         parent->setchild(n1,0);
         n1->setparent(parent);
     }
     node* p=n1->getparent();
-    int p_occ=p->getocc();
-    n1->setocc(d);
+    n1->setocc(0);
+    FOR(i,0, d){n1->insert(temp[i]);}
     FOR(i,d, occ+1){newnode->insert(temp[i]);}
-    //check if parent is full...
-    p->insert(newnode->getkey(0));
-    p->setchild(newnode,p_occ+1);newnode->setparent(p);
-    return p;
+
+    if(!p->isFull())
+    {
+        int x= p->insert(newnode->getkey(0));
+        p->shiftchilds(x+1);//cout<<"X:"<<x<<"  ";
+        p->setchild(newnode,x+1);newnode->setparent(p);
+    }else{
+        cout<<"Index Node is Full\n";
+        cout<<"p : ";p->printnode();cout<<endl;
+        cout<<"key : "<<newnode->getkey(0)<<endl;
+        cout<<"newnode : ";newnode->printnode();cout<<endl;
+        toreturn=splitindexnode(p, newnode->getkey(0), newnode);
+    }
+    return toreturn;
 }
 
 class BPlusTree{
@@ -178,31 +271,23 @@ class BPlusTree{
                 root->insert(key);
                 return;
             }else{
-                if(!root->isFull() && root->getisdata())
-                    root->insert(key);
-                else{
-                    /**
-                    *   case: if root is data also (only one node and isfull)
-                    *   split data node() -> 2 data nodes ... d, d+1
-                    **/
-                   
-                    if(root->getisdata()==1){
-                        node* n1=root;
-                        if(n1->getparent()==nullptr)
-                            root=splitDataNode(n1,key);
-                        else splitDataNode(n1,key);
-                        
-                    }else{//travel to data node...
-                        node* curr=root;
-                        while(curr->getisdata()){
-                            //if(key<curr->getkey(0))curr->getchild(0);
-                            //else 
-                            REP(i,curr->getocc()){
-                                if(key<curr->getkey(i)){curr->getchild(i);continue;}
-                            }curr->getchild(curr->getocc());
-                        }
-                    }
-                    
+                //travel to data node...
+                node* curr=root;
+                while(!curr->getisdata()){
+                    int i=0;
+                    for(;i<curr->getocc();i++)
+                        if(key < curr->getkey(i))
+                            {curr=curr->getchild(i);break;}
+                    if(i==curr->getocc())
+                        curr=curr->getchild(curr->getocc());
+                }
+                //curr->printnode();cout<<endl;
+                if(!curr->isFull()){
+                    curr->insert(key);
+                }else{
+                    node* n2=splitDataNode(curr,key);
+                    if(n2!=nullptr)root=n2;
+                    //cout<<"Full..\n";
                 }
             }
         }
