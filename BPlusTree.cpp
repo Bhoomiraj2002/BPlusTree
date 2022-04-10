@@ -16,18 +16,18 @@ int t,d;
 int insertkey(int* keys, int occupancy, int key){
     int insrt=occupancy;
     int temp;bool ins=false;
-        REP(i,occupancy+1){
-            if(!ins){
-                if(i==occupancy)keys[occupancy]=key;
-                else if(keys[i]>key){
-                    temp=keys[i];
-                    keys[i]=key;insrt=i;
-                    ins=1;
-                }
+    REP(i,occupancy+1){
+        if(!ins){
+            if(i==occupancy)keys[occupancy]=key;
+            else if(keys[i]>key){
+                temp=keys[i];
+                keys[i]=key;insrt=i;
+                ins=1;
             }
-            else swap(temp,keys[i]);
         }
-        return insrt;
+        else swap(temp,keys[i]);
+    }
+    return insrt;
 }
 
 class node{
@@ -45,7 +45,7 @@ class node{
             occupancy=0;
             if(!isdata){
                 maxocc = 2*t+1; //minocc = t;
-                childs=(node**)malloc(sizeof(node*)*(2*t+1));
+                childs=(node**)malloc(sizeof(node*)*(2*t+2));
             }else{
                 maxocc = 2*d; //minocc = d;
                 childs=nullptr;
@@ -55,17 +55,17 @@ class node{
         }
         bool isFull(){ if(occupancy<maxocc)return 0; else return 1; }
         void shiftchilds(int k){
-            for(int i=occupancy+1;  i>=k;i--)
-                childs[i+1]=childs[i];
+            for(int i=2*t+2;  i>k;i--)
+                childs[i]=childs[i-1];
             childs[k]=nullptr;
         }
         int insert(int key){
             if(!isFull()){
                 int z=insertkey( keys, occupancy, key);
                 occupancy++;
+                if(!isdata)
+                    shiftchilds(z+1);
                 return z;
-                /*if(!isdata)
-                    shiftchilds(z+1);*/
             }return -1;
         }
         bool getisdata(){return isdata;}
@@ -173,10 +173,9 @@ node* splitindexnode(node* n1, int key, node* n2 ){
     tmpchilds[occ+1]->setparent(newnode);
     if(!p->isFull()){
         int y= p->insert(temp[t]);
-        p->shiftchilds(y+1);
         p->setchild(newnode,y+1);newnode->setparent(p);
     }else{
-        cout<<"Index Node's parent is Full\n";
+        //cout<<"Index Node's parent is Full\n";
         toReturn=splitindexnode(p, temp[t], newnode);
     }
     return toReturn;
@@ -204,13 +203,9 @@ node* splitDataNode(node* n1, int key){
 
     if(!p->isFull()){
         int x= p->insert(newnode->getkey(0));
-        p->shiftchilds(x+1);//cout<<"X:"<<x<<"  ";
         p->setchild(newnode,x+1);newnode->setparent(p);
+        
     }else{
-        /*cout<<"Index Node is Full\n";
-        cout<<"p : ";p->printnode();cout<<endl;
-        cout<<"key : "<<newnode->getkey(0)<<endl;
-        cout<<"newnode : ";newnode->printnode();cout<<endl;*/
         toReturn=splitindexnode(p, newnode->getkey(0), newnode);
     }
     return toReturn;
