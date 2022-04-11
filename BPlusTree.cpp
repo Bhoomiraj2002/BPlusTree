@@ -61,12 +61,15 @@ class node{
         }
         int insert(int key){
             if(!isFull()){
+                if(key==701)cout<<"Hi"<<endl;
                 int z=insertkey( keys, occupancy, key);
                 occupancy++;
+                //if(key==701)cout<<"\n z: "<<z<<endl;
                 if(!isdata)
                     shiftchilds(z+1);
                 return z;
-            }return -1;
+            }cout<<"Full"<<endl;
+            return -1;
         }
         bool getisdata(){return isdata;}
         int getkey(int k){return keys[k];}
@@ -163,6 +166,7 @@ node* splitindexnode(node* n1, int key, node* n2 ){
         n1->insert(temp[i]);
         n1->setchild(tmpchilds[i], i);
     }n1->setchild(tmpchilds[t], t);
+    tmpchilds[t]->setparent(n1);
     int j=0;
     FOR(i,t+1, occ+1){
         newnode->insert(temp[i]);
@@ -225,15 +229,18 @@ class BPlusTree{
                 return;
             }else{
                 //travel to data node...
+                
                 node* curr=root;
                 while(!curr->getisdata()){
                     int i=0;
                     for(;i<curr->getocc();i++)
                         if(key < curr->getkey(i))
-                            {curr=curr->getchild(i);break;}
+                            {curr=curr->getchild(i);goto out;}
                     if(i==curr->getocc())
                         curr=curr->getchild(curr->getocc());
+                    out:{}
                 }
+                if(key==701)cout<<"Hi"<<endl;
                 if(!curr->isFull()){
                     curr->insert(key);
                 }else{
